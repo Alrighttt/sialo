@@ -38,7 +38,7 @@ pub(crate) struct UploadArgs {
 
     /// The application private key in hex format
     /// (obtained via ./sialo register)
-    #[arg(long, short, env = "APP_KEY", value_parser = parse_private_key)]
+    #[arg(long, short, env = "APP_KEY", hide_env_values = true, value_parser = parse_private_key)]
     pub app_key: PrivateKey,
 
     /// The file to upload
