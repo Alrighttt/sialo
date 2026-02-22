@@ -1,40 +1,11 @@
-use crate::util::{BuildSdkError, build_sdk, parse_private_key};
-use chrono::{DateTime, TimeDelta, Utc};
+use crate::util::{BuildSdkError, build_sdk, parse_expiry, parse_private_key};
+use chrono::{DateTime, Utc};
 use clap::Parser;
 use indexd::Error as IndexdError;
 use sia::signing::PrivateKey;
 use sia::types::Hash256;
 use thiserror::Error;
 use url::Url;
-
-/// Parse a duration string like "1h", "10d", "4w" or an exact ISO 8601
-/// timestamp like "2026-03-30T18:00:00Z" into an absolute DateTime<Utc>.
-fn parse_expiry(s: &str) -> Result<DateTime<Utc>, String> {
-    // Try relative duration first: a number followed by h/d/w
-    let s = s.trim();
-    if let Some(num_str) = s.strip_suffix('w') {
-        let n: i64 = num_str.parse().map_err(|_| format!("invalid number in '{s}'"))?;
-        return Utc::now()
-            .checked_add_signed(TimeDelta::weeks(n))
-            .ok_or_else(|| "duration overflow".to_string());
-    }
-    if let Some(num_str) = s.strip_suffix('d') {
-        let n: i64 = num_str.parse().map_err(|_| format!("invalid number in '{s}'"))?;
-        return Utc::now()
-            .checked_add_signed(TimeDelta::days(n))
-            .ok_or_else(|| "duration overflow".to_string());
-    }
-    if let Some(num_str) = s.strip_suffix('h') {
-        let n: i64 = num_str.parse().map_err(|_| format!("invalid number in '{s}'"))?;
-        return Utc::now()
-            .checked_add_signed(TimeDelta::hours(n))
-            .ok_or_else(|| "duration overflow".to_string());
-    }
-
-    // Fall back to exact ISO 8601 timestamp
-    s.parse::<DateTime<Utc>>()
-        .map_err(|e| format!("expected duration (1h, 10d, 4w) or ISO 8601 timestamp: {e}"))
-}
 
 #[derive(Debug, Error)]
 pub(crate) enum ShareError {

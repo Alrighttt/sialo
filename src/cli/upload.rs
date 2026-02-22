@@ -1,4 +1,5 @@
-use crate::util::{BuildSdkError, build_sdk, parse_private_key};
+use crate::util::{BuildSdkError, build_sdk, parse_expiry, parse_private_key};
+use chrono::{DateTime, Utc};
 use clap::Parser;
 use indexd::Error as IndexdError;
 use indexd::UploadError as IndexdUploadError;
@@ -44,6 +45,11 @@ pub(crate) struct UploadArgs {
     /// The file to upload
     #[arg(value_name = "FILE")]
     pub file: PathBuf,
+
+    /// If provided, generate a share URL that expires at this time
+    /// (e.g. 1h, 10d, 4w, or 2026-03-30T18:00:00Z)
+    #[arg(short = 't', value_parser = parse_expiry)]
+    pub share_until: Option<DateTime<Utc>>,
 }
 
 pub(crate) async fn upload(args: &UploadArgs) -> Result<(), UploadError> {
@@ -74,10 +80,10 @@ pub(crate) async fn upload(args: &UploadArgs) -> Result<(), UploadError> {
         let mut done = 0u64;
         while rx.recv().await.is_some() {
             done += 1;
-            print!("\rUploaded shards: {done}/{total_shards}");
-            let _ = std::io::stdout().flush();
+            eprint!("\rUploaded shards: {done}/{total_shards}");
+            let _ = std::io::stderr().flush();
         }
-        println!();
+        eprintln!();
     });
 
     let object = sdk.upload(input, upload_options).await?;
@@ -87,6 +93,13 @@ pub(crate) async fn upload(args: &UploadArgs) -> Result<(), UploadError> {
 
     sdk.pin_object(&object).await?;
 
-    println!("Object id: {}", object.id());
+    if let Some(valid_until) = args.share_until {
+        let url = sdk
+            .share_object(&object, valid_until)
+            .map_err(|e| UploadError::Pin(e))?;
+        println!("{}", url);
+    } else {
+        println!("Object id: {}", object.id());
+    }
     Ok(())
 }

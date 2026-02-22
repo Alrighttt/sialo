@@ -1,11 +1,39 @@
 use crate::cli::GlobalArgs;
 use crate::error::LoggerError;
+use chrono::{DateTime, TimeDelta, Utc};
 use indexd::{Builder, BuilderError, SDK};
 use rustls::RootCertStore;
 use sia::signing::PrivateKey;
 use std::fs::OpenOptions;
 use thiserror::Error;
 use url::Url;
+
+/// Parse a duration string like "1h", "10d", "4w" or an exact ISO 8601
+/// timestamp like "2026-03-30T18:00:00Z" into an absolute DateTime<Utc>.
+pub(crate) fn parse_expiry(s: &str) -> Result<DateTime<Utc>, String> {
+    let s = s.trim();
+    if let Some(num_str) = s.strip_suffix('w') {
+        let n: i64 = num_str.parse().map_err(|_| format!("invalid number in '{s}'"))?;
+        return Utc::now()
+            .checked_add_signed(TimeDelta::weeks(n))
+            .ok_or_else(|| "duration overflow".to_string());
+    }
+    if let Some(num_str) = s.strip_suffix('d') {
+        let n: i64 = num_str.parse().map_err(|_| format!("invalid number in '{s}'"))?;
+        return Utc::now()
+            .checked_add_signed(TimeDelta::days(n))
+            .ok_or_else(|| "duration overflow".to_string());
+    }
+    if let Some(num_str) = s.strip_suffix('h') {
+        let n: i64 = num_str.parse().map_err(|_| format!("invalid number in '{s}'"))?;
+        return Utc::now()
+            .checked_add_signed(TimeDelta::hours(n))
+            .ok_or_else(|| "duration overflow".to_string());
+    }
+
+    s.parse::<DateTime<Utc>>()
+        .map_err(|e| format!("expected duration (1h, 10d, 4w) or ISO 8601 timestamp: {e}"))
+}
 
 #[derive(Debug, Error)]
 pub(crate) enum ParsePrivateKeyError {
