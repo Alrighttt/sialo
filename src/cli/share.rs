@@ -1,0 +1,60 @@
+use crate::util::{BuildSdkError, build_sdk, parse_private_key};
+use chrono::{DateTime, Utc};
+use clap::Parser;
+use indexd::Error as IndexdError;
+use sia::signing::PrivateKey;
+use sia::types::Hash256;
+use thiserror::Error;
+use url::Url;
+
+#[derive(Debug, Error)]
+pub(crate) enum ShareError {
+    #[error("Failed to create sdk: {0}")]
+    NewSdk(#[from] BuildSdkError),
+    #[error("Failed to fetch object: {0}")]
+    FetchObject(IndexdError),
+    #[error("Failed to share object: {0}")]
+    ShareObject(IndexdError),
+}
+
+#[derive(Parser, Debug)]
+#[command(name = "share")]
+pub(crate) struct ShareArgs {
+    /// The URL of the indexer API
+    #[arg(
+        short = 'u',
+        default_value = "https://app.sia.storage",
+        global = true,
+        env = "INDEXER_URL"
+    )]
+    pub indexer_url: Url,
+
+    /// The application private key in hex format
+    /// ( obtained via ./sialo register )
+    #[arg(long, short, env = "APP_KEY", value_parser = parse_private_key)]
+    pub app_key: PrivateKey,
+
+    /// The object hash of the file to share
+    /// ( obtained via ./sialo upload )
+    #[arg(long, short = 's')]
+    pub object_hash: Hash256,
+
+    /// The expiration time for the share link
+    #[arg(long, short = 't')]
+    // FIXME parse this as something easier than 2026-03-30T18:00:00Z
+    pub share_until: DateTime<Utc>,
+}
+
+pub(crate) async fn share(args: &ShareArgs) -> Result<(), ShareError> {
+    let sdk = build_sdk(&args.app_key, &args.indexer_url).await?;
+
+    let object = sdk
+        .object(&args.object_hash)
+        .await
+        .map_err(ShareError::FetchObject)?;
+    let url = sdk
+        .share_object(&object, args.share_until)
+        .map_err(ShareError::ShareObject)?;
+    println!("{}", url);
+    Ok(())
+}

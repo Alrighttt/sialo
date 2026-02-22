@@ -1,0 +1,25 @@
+[package]
+name = "sialo"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+blake2b_simd = "1.0.4"
+bytes = "1.11.1"
+chrono = "0.4.42"
+clap = { version = "4.5.53", features = ["derive", "env"] }
+hex = "0.4.3"
+humantime = "2.3.0"
+indexd = { git="https://github.com/siafoundation/sia-sdk-rs.git", rev="a37a17f450c022b98cc07e098bd8b21eeae80c91" }
+log = "0.4.27"
+pretty_env_logger = "0.5.0"
+rand = "0.9.2"
+rustls = { version = "0.23.31", features = ["ring"] }
+rustls-platform-verifier = "0.6.1"
+serde_json = "1.0.146"
+sia_sdk = { git="https://github.com/siafoundation/sia-sdk-rs.git", rev="a37a17f450c022b98cc07e098bd8b21eeae80c91" }
+thiserror = "2.0.17"
+tokio = { version = "1.47.1", features = ["fs", "macros", "rt", "rt-multi-thread"] }
+tokio-util = "0.7.17"
+url = "2.5.7"
+webpki-roots = "1.0.4"

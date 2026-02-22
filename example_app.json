@@ -1,0 +1,8 @@
+{
+    "appID": "f00000000000000000000000000000000000000000000000000000000000000d",
+    "name": "rust example app",
+    "description": "A simple upload tool",
+    "serviceURL": "https://foo.bar/",
+    "logoURL": null,
+    "callbackURL": null
+}
