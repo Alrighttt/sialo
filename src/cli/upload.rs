@@ -1,4 +1,4 @@
-use crate::util::{BuildSdkError, build_sdk, parse_expiry, parse_private_key};
+use crate::util::{BuildSdkError, build_sdk, parse_expiry, parse_private_key, to_sia_url};
 use chrono::{DateTime, Utc};
 use clap::Parser;
 use indexd::Error as IndexdError;
@@ -97,7 +97,7 @@ pub(crate) async fn upload(args: &UploadArgs) -> Result<(), UploadError> {
         let url = sdk
             .share_object(&object, valid_until)
             .map_err(|e| UploadError::Pin(e))?;
-        println!("{}", url);
+        println!("{}", to_sia_url(&url));
     } else {
         println!("Object id: {}", object.id());
     }
