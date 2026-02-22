@@ -1,4 +1,4 @@
-use crate::util::{BuildSdkError, build_sdk, parse_private_key};
+use crate::util::{BuildSdkError, build_sdk, from_sia_url, parse_private_key};
 use clap::Parser;
 use indexd::DownloadOptions;
 use indexd::{DownloadError as IndexdDownloadError, Error as IndexdError};
@@ -15,6 +15,10 @@ pub(crate) enum DownloadError {
     NewSdk(#[from] BuildSdkError),
     #[error("Failed to fetch object: {0}")]
     FetchObject(IndexdError),
+    #[error("Failed to fetch shared object: {0}")]
+    SharedObject(IndexdError),
+    #[error("Failed to parse object hash: {0}")]
+    ParseHash(String),
     #[error("failed to create parent directories for file {path}: {source}")]
     CreateParentDir {
         #[source]
@@ -48,10 +52,9 @@ pub(crate) struct DownloadArgs {
     #[arg(long, short, env = "APP_KEY", hide_env_values = true, value_parser = parse_private_key)]
     pub app_key: PrivateKey,
 
-    /// The object hash of the file to download
-    /// ( obtained via ./sialo upload )
-    #[arg(value_name = "OBJECT_HASH")]
-    pub object_hash: Hash256,
+    /// A share URL (sia:// or https://) or object hash
+    #[arg(value_name = "SOURCE")]
+    pub source: String,
 
     /// The path where the file will be saved
     #[arg(long, short = 'o')]
@@ -61,10 +64,20 @@ pub(crate) struct DownloadArgs {
 pub(crate) async fn download(args: &DownloadArgs) -> Result<(), DownloadError> {
     let sdk = build_sdk(&args.app_key, &args.indexer_url).await?;
 
-    let object = sdk
-        .object(&args.object_hash)
-        .await
-        .map_err(DownloadError::FetchObject)?;
+    let src = args.source.trim();
+    let object = if src.starts_with("sia://") || src.starts_with("https://") {
+        let https_url = from_sia_url(src);
+        sdk.shared_object(&https_url)
+            .await
+            .map_err(DownloadError::SharedObject)?
+    } else {
+        let hash: Hash256 = src
+            .parse()
+            .map_err(|_| DownloadError::ParseHash(src.to_string()))?;
+        sdk.object(&hash)
+            .await
+            .map_err(DownloadError::FetchObject)?
+    };
 
     // Ensure parent directories exist
     if let Some(parent) = args.output_file.parent() {

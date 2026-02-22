@@ -13,6 +13,12 @@ pub(crate) fn to_sia_url(url: &Url) -> String {
     url.as_str().replacen("https://", "sia://", 1)
 }
 
+/// Convert a `sia://` share URL back to `https://`.
+/// If already `https://`, returns unchanged.
+pub(crate) fn from_sia_url(s: &str) -> String {
+    s.replacen("sia://", "https://", 1)
+}
+
 /// Parse a duration string like "1h", "10d", "4w" or an exact ISO 8601
 /// timestamp like "2026-03-30T18:00:00Z" into an absolute DateTime<Utc>.
 pub(crate) fn parse_expiry(s: &str) -> Result<DateTime<Utc>, String> {

@@ -23,20 +23,34 @@ Set a custom AppMetadata JSON file (see example_json.json in this repo):
 
 `./sialo upload --app-key 4a5db12851738b74a7f6ad8a2092d23980e455a03d99f373b69e9629eccf2549b1c33f4e3c999e5d3f94b669932f96f7b5cf4ffe55ad69f2202ab38845a250fa hello_world.txt`
 
-or 
+or
 
 `APP_KEY="4a5db12851738b74a7f6ad8a2092d23980e455a03d99f373b69e9629eccf2549b1c33f4e3c999e5d3f94b669932f96f7b5cf4ffe55ad69f2202ab38845a250fa" ./sialo upload hello_world.txt`
 
-or 
+or
 
 ```
 export APP_KEY="4a5db12851738b74a7f6ad8a2092d23980e455a03d99f373b69e9629eccf2549b1c33f4e3c999e5d3f94b669932f96f7b5cf4ffe55ad69f2202ab38845a250fa"
 ./sialo upload hello_world.txt
 ```
 
+Upload and get a share URL (expires in 4 weeks):
+
+`./sialo upload -t 4w hello_world.txt`
+
+All share URLs are output using the `sia://` protocol scheme.
+
 ## Download
 
-`APP_KEY="4a5db12851738b74a7f6ad8a2092d23980e455a03d99f373b69e9629eccf2549b1c33f4e3c999e5d3f94b669932f96f7b5cf4ffe55ad69f2202ab38845a250fa" ./sialo download bd00710a8182b18e4c2263f69e3a5785b275e0911cc4bbadc555c743576772bd --output-file some.file`
+Download accepts either an object hash or a share URL (`sia://` or `https://`).
+
+By object hash:
+
+`./sialo download bd00710a8182b18e4c2263f69e3a5785b275e0911cc4bbadc555c743576772bd -o some.file`
+
+By share URL:
+
+`./sialo download 'sia://app.sia.storage/objects/<hash>/shared?sv=...&ss=...#encryption_key=...' -o some.file`
 
 ## Delete
 
@@ -58,18 +72,15 @@ Share with an exact expiration date:
 
 Supported duration suffixes: `h` (hours), `d` (days), `w` (weeks). Exact ISO 8601 timestamps are also accepted.
 
+All share URLs are output using the `sia://` protocol scheme.
+
 Use `sialo share -h` for a quick summary or `sialo share --help` for full details with examples.
 
 ## Embedding Sia Content in HTML
 
 HTML pages hosted on Sia can reference other Sia-hosted content using the `sia://` protocol. The Sia Browser intercepts these URLs and downloads + decrypts the content directly from storage hosts via WebTransport.
 
-To create a `sia://` URL, take any share URL and replace the `https://` prefix with `sia://`:
-
-```
-Share URL:  https://app.sia.storage/objects/<hash>/shared?sv=...&ss=...#encryption_key=...
-Embed URL:  sia://app.sia.storage/objects/<hash>/shared?sv=...&ss=...#encryption_key=...
-```
+`sialo upload -t` and `sialo share` already output `sia://` URLs, so you can use them directly in your HTML:
 
 ### Images
 
@@ -97,11 +108,9 @@ Clicking a `sia://` link opens the content in a new Sia Browser tab. This works 
 
 ### Workflow
 
-1. Upload the assets (images, videos, etc.) with `sialo upload`
-2. Generate share URLs with `sialo share -t <duration>`
-3. Write your HTML page using `sia://` URLs for embedded content
-4. Upload the HTML page itself with `sialo upload`
-5. Share the HTML page with `sialo share -t <duration>`
+1. Upload assets (images, videos, etc.) with `sialo upload -t <duration>` to get `sia://` share URLs
+2. Write your HTML page using those `sia://` URLs for embedded content
+3. Upload the HTML page with `sialo upload -t <duration>`
 
 See `flowers.html` in this repo for a complete example of an HTML page with 10 embedded `sia://` images.
 
